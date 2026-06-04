@@ -10,9 +10,11 @@ async function setupAssistant() {
     const assistant = await vapi.assistants.create({
       name: `${env.PERSONA_NAME} AI Persona`,
       model: {
-        provider: 'openai', // Using Vapi's built-in models
-        model: 'gpt-4o', 
-        systemPrompt: SYSTEM_PROMPT,
+        provider: 'openai',
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+        ],
         // Tools available to the assistant
         tools: [
           {
@@ -84,7 +86,7 @@ async function setupAssistant() {
         voiceId: 'pNInz6obpgDQGcFmaJgB', // Adam voice (professional male)
       },
       firstMessage: `Hi there! I'm the AI representative for ${env.PERSONA_NAME}. How can I help you today?`,
-      serverUrl: env.WEBHOOK_URL || 'https://your-production-url.com/api/vapi/webhook',
+      server: { url: env.WEBHOOK_URL || 'https://your-production-url.com/api/vapi/webhook' },
     });
 
     console.log(`\n✅ Assistant created successfully!`);
@@ -129,7 +131,5 @@ async function setupAssistant() {
   }
 }
 
-// Allow running this script directly
-if (require.main === module) {
-  setupAssistant();
-}
+// Run immediately when executed directly
+setupAssistant();

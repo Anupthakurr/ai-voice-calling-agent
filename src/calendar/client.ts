@@ -2,12 +2,11 @@ import { google, calendar_v3 } from 'googleapis';
 import { env } from '../config/env';
 
 // Authentication
-const auth = new google.auth.JWT(
-  env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-  undefined,
-  env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'), // Handle newlines in env vars
-  ['https://www.googleapis.com/auth/calendar']
-);
+const auth = new google.auth.JWT({
+  email: env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+  key: env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+  scopes: ['https://www.googleapis.com/auth/calendar'],
+});
 
 const calendar = google.calendar({ version: 'v3', auth });
 
