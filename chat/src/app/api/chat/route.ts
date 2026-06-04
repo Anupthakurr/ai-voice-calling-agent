@@ -40,8 +40,8 @@ export async function POST(request: Request) {
     // Initialize clients inside handler (avoids cold-start env var issues on Vercel)
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const pinecone = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
-    const embeddingModel = genAI.getGenerativeModel({ model: 'gemini-embedding-001' });
-    const generativeModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const embeddingModel = genAI.getGenerativeModel({ model: 'text-embedding-004' });
+    const generativeModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     // RAG retrieval
     const index = pinecone.Index(process.env.PINECONE_INDEX_NAME || 'voice-rag');
