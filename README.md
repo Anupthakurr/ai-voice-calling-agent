@@ -54,7 +54,31 @@ cd ..
 ```
 
 ### 3. Environment Variables
-Create a `.env` file in the root directory and a `.env.local` file in the `chat/` directory using the `.env.example` as a template.
+Create a `.env` file in the root directory and a `.env.local` file in the `chat/` directory using the following template:
+
+```env
+# Vapi
+VAPI_API_KEY="your-vapi-key"
+VAPI_PHONE_NUMBER_ID="your-vapi-phone-id"
+
+# Gemini
+GEMINI_API_KEY="your-gemini-key"
+
+# Pinecone
+PINECONE_API_KEY="your-pinecone-key"
+PINECONE_INDEX_NAME="anup-persona"
+
+# Google Calendar
+GOOGLE_SERVICE_ACCOUNT_EMAIL="your-service-account-email"
+# Remember to format private key properly, or use base64 in production
+GOOGLE_PRIVATE_KEY="your-private-key-with-\n"
+GOOGLE_CALENDAR_ID="anupthakur150@email.com"
+
+# App
+PORT=3001
+NODE_ENV="development"
+PERSONA_NAME="Anup Thakur"
+```
 
 ### 4. Ingest Data (RAG)
 To scrape and embed the GitHub repositories and resume into your Pinecone index:
