@@ -1,12 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Pinecone } from '@pinecone-database/pinecone';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-const pinecone = new Pinecone({ apiKey: process.env.PINECONE_API_KEY! });
-
-const embeddingModel = genAI.getGenerativeModel({ model: 'gemini-embedding-001' });
-const generativeModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
 const SYSTEM_PROMPT = `You are Anup Kumar Thakur's AI representative. You are speaking on behalf of Anup for the Scaler AI Engineer role or any other inquiry.
 
 STRICT RULES:
@@ -18,41 +12,20 @@ STRICT RULES:
 6. When asked why Anup is a good fit, give specific evidence-backed examples from the context.
 7. Keep responses focused and professional but personable.`;
 
-async function retrieveContext(query: string): Promise<{ context: string; sources: string[] }> {
-  const index = pinecone.Index(process.env.PINECONE_INDEX_NAME || 'voice-rag');
-  
-  const embeddingResponse = await embeddingModel.embedContent(query);
-  let queryEmbedding = embeddingResponse.embedding.values.slice(0, 1024);
-  const magnitude = Math.sqrt(queryEmbedding.reduce((acc, val) => acc + val * val, 0));
-  queryEmbedding = queryEmbedding.map(val => val / magnitude);
-
-  const searchResults = await index.query({
-    vector: queryEmbedding,
-    topK: 6,
-    includeMetadata: true,
-  });
-
-  const sources: string[] = [];
-  let context = '';
-
-  if (searchResults.matches && searchResults.matches.length > 0) {
-    searchResults.matches.forEach((match) => {
-      const meta = match.metadata as any;
-      const source = meta.repo_name ? `GitHub: ${meta.repo_name}` : 'Resume';
-      if (!sources.includes(source)) sources.push(source);
-      context += `[${source}]: ${meta.text || ''}\n\n`;
-    });
-  }
-
-  return { context: context.trim(), sources };
-}
-
 export async function POST(request: Request) {
   try {
-    const { message, history } = await request.json();
+    const { message } = await request.json();
 
     if (!message?.trim()) {
       return Response.json({ error: 'Message is required' }, { status: 400 });
+    }
+
+    // Validate env vars — return descriptive errors so we can debug on Vercel
+    if (!process.env.GEMINI_API_KEY) {
+      return Response.json({ error: 'GEMINI_API_KEY is not set', reply: '⚠️ Config error: GEMINI_API_KEY missing.' }, { status: 500 });
+    }
+    if (!process.env.PINECONE_API_KEY) {
+      return Response.json({ error: 'PINECONE_API_KEY is not set', reply: '⚠️ Config error: PINECONE_API_KEY missing.' }, { status: 500 });
     }
 
     // Basic prompt injection guard
@@ -64,12 +37,40 @@ export async function POST(request: Request) {
       });
     }
 
-    const { context, sources } = await retrieveContext(message);
+    // Initialize clients inside handler (avoids cold-start env var issues on Vercel)
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const pinecone = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
+    const embeddingModel = genAI.getGenerativeModel({ model: 'gemini-embedding-001' });
+    const generativeModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+    // RAG retrieval
+    const index = pinecone.Index(process.env.PINECONE_INDEX_NAME || 'voice-rag');
+    const embeddingResponse = await embeddingModel.embedContent(message);
+    let queryEmbedding = embeddingResponse.embedding.values.slice(0, 1024);
+    const magnitude = Math.sqrt(queryEmbedding.reduce((acc, val) => acc + val * val, 0));
+    queryEmbedding = queryEmbedding.map(val => val / magnitude);
+
+    const searchResults = await index.query({
+      vector: queryEmbedding,
+      topK: 6,
+      includeMetadata: true,
+    });
+
+    const sources: string[] = [];
+    let context = '';
+    if (searchResults.matches && searchResults.matches.length > 0) {
+      searchResults.matches.forEach((match) => {
+        const meta = match.metadata as any;
+        const source = meta.repo_name ? `GitHub: ${meta.repo_name}` : 'Resume';
+        if (!sources.includes(source)) sources.push(source);
+        context += `[${source}]: ${meta.text || ''}\n\n`;
+      });
+    }
 
     const prompt = `${SYSTEM_PROMPT}
 
 Here is the retrieved context about Anup:
-${context}
+${context.trim()}
 
 User Question: ${message}
 
@@ -81,10 +82,14 @@ Answer based only on the context above. Be specific and cite relevant details.`;
     });
 
     const reply = result.response.text();
-
     return Response.json({ reply, sources });
+
   } catch (error: any) {
     console.error('[Chat API Error]', error);
-    return Response.json({ error: 'Failed to generate response' }, { status: 500 });
+    return Response.json({
+      error: error?.message || 'Unknown error',
+      reply: `⚠️ API Error: ${error?.message || 'Unknown error'}`,
+      sources: [],
+    }, { status: 500 });
   }
 }
