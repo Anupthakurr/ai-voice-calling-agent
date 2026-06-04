@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { Pinecone } from '@pinecone-database/pinecone';
 
 const SYSTEM_PROMPT = `You are Anup Kumar Thakur's AI representative. You are speaking on behalf of Anup for the Scaler AI Engineer role or any other inquiry.
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Message is required' }, { status: 400 });
     }
 
-    // Validate env vars — return descriptive errors so we can debug on Vercel
+    // Validate env vars
     if (!process.env.GEMINI_API_KEY) {
       return Response.json({ error: 'GEMINI_API_KEY is not set', reply: '⚠️ Config error: GEMINI_API_KEY missing.' }, { status: 500 });
     }
@@ -37,16 +37,23 @@ export async function POST(request: Request) {
       });
     }
 
-    // Initialize clients inside handler (avoids cold-start env var issues on Vercel)
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    // Initialize the new @google/genai SDK
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const pinecone = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
-    const embeddingModel = genAI.getGenerativeModel({ model: 'gemini-embedding-001' });
-    const generativeModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     // RAG retrieval
     const index = pinecone.Index(process.env.PINECONE_INDEX_NAME || 'voice-rag');
-    const embeddingResponse = await embeddingModel.embedContent(message);
-    let queryEmbedding = embeddingResponse.embedding.values.slice(0, 1024);
+    
+    // Embed the query
+    const embeddingResponse = await ai.models.embedContent({
+      model: 'text-embedding-004',
+      contents: message,
+    });
+    
+    // The new SDK returns an array of embeddings. Get the first one.
+    let queryEmbedding = embeddingResponse.embeddings![0].values!.slice(0, 1024);
+    
+    // Normalize to match pinecone indexing
     const magnitude = Math.sqrt(queryEmbedding.reduce((acc, val) => acc + val * val, 0));
     queryEmbedding = queryEmbedding.map(val => val / magnitude);
 
@@ -76,12 +83,16 @@ User Question: ${message}
 
 Answer based only on the context above. Be specific and cite relevant details.`;
 
-    const result = await generativeModel.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
+    // Generate response using gemini-1.5-flash
+    const result = await ai.models.generateContent({
+      model: 'gemini-1.5-flash',
+      contents: prompt,
+      config: {
+        temperature: 0.3,
+      }
     });
 
-    const reply = result.response.text();
+    const reply = result.text;
     return Response.json({ reply, sources });
 
   } catch (error: any) {
