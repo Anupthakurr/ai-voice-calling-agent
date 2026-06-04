@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     
     // Embed the query
     const embeddingResponse = await ai.models.embedContent({
-      model: 'text-embedding-004',
+      model: 'gemini-embedding-001',
       contents: message,
     });
     
