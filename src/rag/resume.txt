@@ -1,0 +1,55 @@
+Anup Kumar Thakur
+anupthakur150@gmail.com | +91 9654923738 | LinkedIn | GitHub | Portfolio
+
+Education
+Bachelor of Technology - Computer Science Engineering 2023 – 2027
+Bhagwan Parshuram Institute of Technology, Delhi CGPA: 7.74
+
+Skills
+Programming Languages: C, C++, Java, Python
+Web Development: HTML, CSS, JavaScript, React.js, Next.js, Tailwind CSS, Node.js, Express.js, MongoDB
+Tools & Technologies: Git, GitHub, VS Code, Google Colab, Matplotlib
+Core Knowledge: Data Structures, Algorithms, OOPS, DBMS, Computer Networks, Operating System
+Communication Skills: Presented technical concepts during team meetings and project demos
+
+Experience
+Web Developer Intern
+Open Limits
+• Developed and maintained web applications, ensuring responsive design and seamless functionality.
+• Followed best practices in coding and testing to ensure high-quality deliverables.
+
+AI Trainer
+Outlier AI
+• Evaluated and improved AI-generated responses based on quality, accuracy, and detailed rubric criteria.
+• Identified logical inconsistencies, factual errors, and reasoning gaps in model outputs.
+• Worked on tasks involving response comparison, ranking, and quality benchmarking.
+
+Projects
+ImageEnhance AI – Full Stack AI SaaS App [Live]
+• Built a production-grade AI application with 40% faster response time.
+• Features include background removal, image restoration, and aspect ratio adjustment.
+• Tech Stack: Next.js, TypeScript, MongoDB, Clerk, Cloudinary, Stripe, Tailwind CSS.
+
+Graph Visualizer – Web Application [Live]
+• Developed an interactive web application to create and visualize weighted and unweighted graphs using user-defined nodes and edges.
+• Implemented visualization of core graph algorithms including Shortest Path, Minimum Spanning Tree (MST), and Connected Components with step-by-step execution.
+• Tech Stack: React, JavaScript, Node.js, React Router.
+
+Skillista – Women Empowerment Skill & Hiring Platform [Live]
+• Created a women-focused skill marketplace enabling hiring, course enrollment, and skill monetization in one platform.
+• Implemented dual onboarding flows allowing users to join as Skillsters (service providers) or Clients (hirers).
+• Tech Stack: React, Vite, Firebase (Authentication, Firestore, Hosting), Tailwind CSS.
+
+SmartInvoice – Invoice Management System [Live]
+• Built a full-stack MERN invoicing platform enabling businesses and freelancers to create, manage, and send invoices.
+• Integrated secure authentication with Google OAuth 2.0 and profile avatar upload using Cloudinary and Multer.
+• Tech Stack: React, Node.js, Express.js, MongoDB, Tailwind CSS, Axios, jsPDF.
+
+Achievements
+Solved 900+ DSA problems on LeetCode, GeeksforGeeks, and Codeforces.
+Secured Top 10 position among 300+ teams in Bennett University Hackathon.
+LeetCode rating 1712(MAX).
+
+Certifications
+Samsung Innovation Campus – AI Program
+Accenture iAspire Program
