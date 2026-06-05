@@ -199,6 +199,9 @@ export default function ChatPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState<string | null>(null);
+  const [showCallModal, setShowCallModal] = useState(false);
+  const [callNumber, setCallNumber] = useState('');
+  const [callStatus, setCallStatus] = useState<'idle' | 'calling' | 'success' | 'error'>('idle');
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -346,18 +349,32 @@ export default function ChatPage() {
               </div>
             </div>
           </div>
-          <a
-            href="tel:+12137581764"
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              background: 'rgba(78,204,163,0.12)', border: '1px solid rgba(78,204,163,0.3)',
-              color: 'var(--accent-green)', borderRadius: 20, padding: '6px 14px',
-              fontSize: 13, fontWeight: 500, textDecoration: 'none', transition: 'all 0.2s'
-            }}
-            title="Call the voice agent"
-          >
-            📞 +1 (213) 758-1764
-          </a>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={() => setShowCallModal(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: 'rgba(108,99,255,0.12)', border: '1px solid rgba(108,99,255,0.3)',
+                color: 'var(--accent)', borderRadius: 20, padding: '6px 14px',
+                fontSize: 13, fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s'
+              }}
+              title="Request a call from the agent"
+            >
+              📲 Have the AI Call You
+            </button>
+            <a
+              href="tel:+12137581764"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: 'rgba(78,204,163,0.12)', border: '1px solid rgba(78,204,163,0.3)',
+                color: 'var(--accent-green)', borderRadius: 20, padding: '6px 14px',
+                fontSize: 13, fontWeight: 500, textDecoration: 'none', transition: 'all 0.2s'
+              }}
+              title="Call the voice agent"
+            >
+              📞 +1 (213) 758-1764
+            </a>
+          </div>
         </div>
       </header>
 
@@ -474,6 +491,70 @@ export default function ChatPage() {
           RAG-grounded answers from Anup's resume & GitHub · Built for Scaler AI Engineer screening
         </p>
       </footer>
+
+      {/* Call Modal */}
+      {showCallModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.6)', zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div className="glass" style={{
+            padding: 24, borderRadius: 16, width: '90%', maxWidth: 400,
+            background: 'var(--bg-card)', border: '1px solid var(--border)'
+          }}>
+            <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8, color: 'var(--text-primary)' }}>
+              Request an Outbound Call
+            </h3>
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16 }}>
+              Enter your phone number with the country code (e.g., +919999999999) and our AI will call you immediately.
+            </p>
+            <input
+              type="tel"
+              className="chat-input px-3 py-2 block w-full"
+              placeholder="+91..."
+              value={callNumber}
+              onChange={e => setCallNumber(e.target.value)}
+              style={{ borderRadius: 8, marginBottom: 16, width: '100%', boxSizing: 'border-box' }}
+            />
+            {callStatus === 'error' && (
+              <p style={{ color: '#ff6b6b', fontSize: 13, marginBottom: 16 }}>Failed to place the call. Check the number and try again.</p>
+            )}
+            {callStatus === 'success' && (
+              <p style={{ color: 'var(--accent-green)', fontSize: 13, marginBottom: 16 }}>✅ Call initiated! Your phone should ring shortly.</p>
+            )}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button 
+                className="pill-btn" 
+                onClick={() => { setShowCallModal(false); setCallStatus('idle'); }}
+              >
+                Close
+              </button>
+              <button 
+                className="pill-btn" 
+                style={{ background: 'var(--accent)', color: 'white', borderColor: 'var(--accent)' }}
+                disabled={!callNumber || callStatus === 'calling' || callStatus === 'success'}
+                onClick={async () => {
+                  setCallStatus('calling');
+                  try {
+                    const res = await fetch('/api/call', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ phoneNumber: callNumber })
+                    });
+                    if (res.ok) setCallStatus('success');
+                    else setCallStatus('error');
+                  } catch {
+                    setCallStatus('error');
+                  }
+                }}
+              >
+                {callStatus === 'calling' ? 'Calling...' : 'Call Me'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
