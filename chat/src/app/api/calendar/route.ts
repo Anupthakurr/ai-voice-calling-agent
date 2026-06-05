@@ -85,6 +85,6 @@ export async function POST(request: Request) {
     });
   } catch (error: any) {
     console.error('[Calendar POST Error]', error);
-    return Response.json({ error: 'Failed to book meeting' }, { status: 500 });
+    return Response.json({ error: error.message || 'Failed to book meeting' }, { status: 500 });
   }
 }
