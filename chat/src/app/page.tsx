@@ -241,14 +241,23 @@ export default function ChatPage() {
   }, []);
 
   const toggleWebCall = () => {
-    if (!vapiRef.current) return;
+    if (!vapiRef.current) {
+      alert("Voice SDK is not initialized! Please make sure NEXT_PUBLIC_VAPI_PUBLIC_KEY is added to Vercel and you have redeployed.");
+      return;
+    }
     if (isWebCalling || isVapiConnected) {
       vapiRef.current.stop();
       setIsWebCalling(false);
       setIsVapiConnected(false);
     } else {
       setIsWebCalling(true); // loading state
-      vapiRef.current.start(process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID || '');
+      const asstId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
+      if (!asstId) {
+        alert("Assistant ID is missing! Please make sure NEXT_PUBLIC_VAPI_ASSISTANT_ID is added to Vercel and redeployed.");
+        setIsWebCalling(false);
+        return;
+      }
+      vapiRef.current.start(asstId);
     }
   };
 
