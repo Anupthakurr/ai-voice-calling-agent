@@ -17,7 +17,7 @@ This project is an end-to-end AI Persona built for Anup Thakur. It consists of t
 - **Premium UI**: Dark-mode glassmorphism design with dynamic typing and animated message bubbles.
 - **RAG-Grounded Answers**: Context is retrieved from Anup's resume and 24 GitHub repositories to answer questions accurately and avoid hallucination.
 - **Inline Calendar Booking**: A custom interactive calendar widget built directly into the chat flow.
-- **Tech Stack**: Next.js 14, TailwindCSS, Gemini (`gemini-2.0-flash` & `gemini-embedding-001`), Pinecone (Vector DB).
+- **Tech Stack**: Next.js 14, TailwindCSS, Gemini (`gemini-2.5-flash` & `gemini-embedding-001`), Pinecone (Vector DB).
 
 ---
 
