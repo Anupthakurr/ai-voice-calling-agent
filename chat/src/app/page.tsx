@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Vapi from '@vapi-ai/web';
 
 interface Message {
   id: string;
@@ -202,8 +203,54 @@ export default function ChatPage() {
   const [showCallModal, setShowCallModal] = useState(false);
   const [callNumber, setCallNumber] = useState('');
   const [callStatus, setCallStatus] = useState<'idle' | 'calling' | 'success' | 'error'>('idle');
+  
+  // Web SDK State
+  const [isWebCalling, setIsWebCalling] = useState(false);
+  const [isVapiConnected, setIsVapiConnected] = useState(false);
+  const vapiRef = useRef<any>(null);
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const vapi = new Vapi(process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY || '');
+        vapiRef.current = vapi;
+
+        vapi.on('call-start', () => {
+          setIsWebCalling(true);
+          setIsVapiConnected(true);
+        });
+        vapi.on('call-end', () => {
+          setIsWebCalling(false);
+          setIsVapiConnected(false);
+        });
+        vapi.on('error', (e: any) => {
+          console.error('Vapi Error:', e);
+          setIsWebCalling(false);
+          setIsVapiConnected(false);
+        });
+      } catch (e) {
+        console.error('Failed to initialize Vapi:', e);
+      }
+    }
+    return () => {
+      vapiRef.current?.stop();
+    };
+  }, []);
+
+  const toggleWebCall = () => {
+    if (!vapiRef.current) return;
+    if (isWebCalling || isVapiConnected) {
+      vapiRef.current.stop();
+      setIsWebCalling(false);
+      setIsVapiConnected(false);
+    } else {
+      setIsWebCalling(true); // loading state
+      vapiRef.current.start(process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID || '');
+    }
+  };
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -352,6 +399,20 @@ export default function ChatPage() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={toggleWebCall}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: isWebCalling ? 'rgba(255,107,107,0.12)' : 'rgba(255,152,0,0.12)', 
+                border: `1px solid ${isWebCalling ? 'rgba(255,107,107,0.3)' : 'rgba(255,152,0,0.3)'}`,
+                color: isWebCalling ? '#ff6b6b' : '#ff9800', 
+                borderRadius: 20, padding: '6px 14px',
+                fontSize: 13, fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s'
+              }}
+              title="Talk to the AI via your browser microphone"
+            >
+              {isVapiConnected ? '⏹️ End Web Call' : (isWebCalling ? '⏳ Connecting...' : '🎙️ Talk in Browser')}
+            </button>
             <button
               onClick={() => setShowCallModal(true)}
               style={{
