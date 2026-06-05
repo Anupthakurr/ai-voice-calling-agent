@@ -59,7 +59,7 @@ export async function POST(request: Request) {
 
     const searchResults = await index.query({
       vector: queryEmbedding,
-      topK: 6,
+      topK: 50,
       includeMetadata: true,
     });
 
