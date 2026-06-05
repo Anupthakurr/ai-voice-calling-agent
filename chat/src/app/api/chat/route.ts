@@ -83,9 +83,9 @@ User Question: ${message}
 
 Answer based only on the context above. Be specific and cite relevant details.`;
 
-    // Generate response using gemini-1.5-flash
+    // Generate response using gemini-2.5-flash
     const result = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.5-flash',
       contents: prompt,
       config: {
         temperature: 0.3,
