@@ -44,11 +44,31 @@ export async function POST(request: Request) {
     // RAG retrieval
     const index = pinecone.Index(process.env.PINECONE_INDEX_NAME || 'voice-rag');
     
+    // Helper function to retry Google GenAI API calls on 503 errors
+    const withRetry = async <T>(operation: () => Promise<T>, maxRetries = 2): Promise<T> => {
+      let lastError;
+      for (let i = 0; i < maxRetries; i++) {
+        try {
+          return await operation();
+        } catch (err: any) {
+          lastError = err;
+          // Check if it's a 503 Unavailable error or 429 Too Many Requests
+          if (err?.message?.includes('503') || err?.message?.includes('UNAVAILABLE') || err?.message?.includes('429')) {
+            console.log(`[Retry] API overloaded. Retrying... (${i + 1}/${maxRetries})`);
+            await new Promise(res => setTimeout(res, 1500 * (i + 1))); // Exponential backoff: 1.5s, 3s
+            continue;
+          }
+          throw err; // Throw immediately if it's a different error
+        }
+      }
+      throw lastError;
+    };
+
     // Embed the query
-    const embeddingResponse = await ai.models.embedContent({
+    const embeddingResponse = await withRetry(() => ai.models.embedContent({
       model: 'gemini-embedding-001',
       contents: message,
-    });
+    }));
     
     // The new SDK returns an array of embeddings. Get the first one.
     let queryEmbedding = embeddingResponse.embeddings![0].values!.slice(0, 1024);
@@ -84,13 +104,13 @@ User Question: ${message}
 Answer based only on the context above. Be specific and cite relevant details.`;
 
     // Generate response using gemini-2.5-flash
-    const result = await ai.models.generateContent({
+    const result = await withRetry(() => ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
       config: {
         temperature: 0.3,
       }
-    });
+    }));
 
     const reply = result.text;
     return Response.json({ reply, sources });
