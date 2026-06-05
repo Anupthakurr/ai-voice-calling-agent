@@ -279,7 +279,7 @@ export default function ChatPage() {
         const confirmMsg: Message = {
           id: Date.now().toString(),
           role: 'ai',
-          content: `✅ **Meeting confirmed!** You're scheduled with Anup on **${d.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}** at **${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })} IST**.\n\nA calendar invite has been sent to ${info.email}. See you then! 🎉`,
+          content: `✅ **Meeting confirmed!** You're scheduled with Anup on **${d.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}** at **${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })} IST**.\n\nThe meeting has been successfully added to Anup's calendar. See you then! 🎉`,
           sources: [],
           timestamp: new Date(),
         };

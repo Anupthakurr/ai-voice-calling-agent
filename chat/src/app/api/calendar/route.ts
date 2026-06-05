@@ -70,10 +70,9 @@ export async function POST(request: Request) {
       calendarId: process.env.GOOGLE_CALENDAR_ID,
       requestBody: {
         summary: `Interview with ${name} — Scaler AI Role`,
-        description: `Meeting booked via Anup's AI Chat Interface.\nAttendee: ${name} (${email})`,
+        description: `Meeting booked via Anup's AI Chat Interface.\nAttendee Name: ${name}\nAttendee Email: ${email}`,
         start: { dateTime: start.toISOString() },
         end: { dateTime: end.toISOString() },
-        attendees: [{ email }],
       },
     });
 
