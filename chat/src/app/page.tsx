@@ -284,12 +284,14 @@ export default function ChatPage() {
           timestamp: new Date(),
         };
         setMessages(prev => [...prev, confirmMsg]);
+      } else {
+        throw new Error(data.error || 'Failed to book meeting');
       }
-    } catch {
+    } catch (error: any) {
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: 'ai',
-        content: 'Sorry, there was an error booking the meeting. Please try again.',
+        content: `Sorry, there was an error booking the meeting: ${error.message || 'Please try again.'}`,
         sources: [],
         timestamp: new Date(),
       }]);
