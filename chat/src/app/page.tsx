@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useState, useRef, useEffect } from 'react';
-import Vapi from '@vapi-ai/web';
+import { useEffect, useRef, useState } from "react";
+import Vapi from "@vapi-ai/web";
 
 interface Message {
   id: string;
-  role: 'user' | 'ai';
+  role: "user" | "ai";
   content: string;
   sources?: string[];
   timestamp: Date;
@@ -25,9 +25,84 @@ const SUGGESTED_QUESTIONS = [
   "Book an interview with Anup",
 ];
 
+const STACK = ["React", "Next.js", "Node.js", "MongoDB", "Python", "Gemini AI", "RAG"];
+
+function Icon({
+  name,
+  className,
+}: {
+  name: "bot" | "user" | "mic" | "phone" | "send" | "stop" | "calendar" | "spark" | "close";
+  className?: string;
+}) {
+  const common = {
+    width: 18,
+    height: 18,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    className,
+  };
+
+  const paths = {
+    bot: (
+      <>
+        <path d="M12 8V4" />
+        <rect x="5" y="8" width="14" height="12" rx="4" />
+        <path d="M8 13h.01M16 13h.01M9 17h6" />
+      </>
+    ),
+    user: (
+      <>
+        <path d="M20 21a8 8 0 0 0-16 0" />
+        <circle cx="12" cy="7" r="4" />
+      </>
+    ),
+    mic: (
+      <>
+        <path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z" />
+        <path d="M19 11a7 7 0 0 1-14 0M12 18v3" />
+      </>
+    ),
+    phone: (
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.77.62 2.6a2 2 0 0 1-.45 2.11L8 9.71a16 16 0 0 0 6.29 6.29l1.27-1.27a2 2 0 0 1 2.11-.45c.83.29 1.7.5 2.6.62A2 2 0 0 1 22 16.92Z" />
+    ),
+    send: (
+      <>
+        <path d="m22 2-7 20-4-9-9-4Z" />
+        <path d="M22 2 11 13" />
+      </>
+    ),
+    stop: <rect x="6" y="6" width="12" height="12" rx="2" />,
+    calendar: (
+      <>
+        <path d="M8 2v4M16 2v4" />
+        <rect x="3" y="4" width="18" height="18" rx="3" />
+        <path d="M3 10h18" />
+      </>
+    ),
+    spark: (
+      <>
+        <path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z" />
+        <path d="m19 15 .7 2.3L22 18l-2.3.7L19 21l-.7-2.3L16 18l2.3-.7Z" />
+      </>
+    ),
+    close: (
+      <>
+        <path d="M18 6 6 18" />
+        <path d="m6 6 12 12" />
+      </>
+    ),
+  };
+
+  return <svg {...common}>{paths[name]}</svg>;
+}
+
 function TypingIndicator() {
   return (
-    <div className="flex items-center gap-1 px-4 py-3">
+    <div className="typing-indicator" aria-label="AI is typing">
       <span className="typing-dot" />
       <span className="typing-dot" />
       <span className="typing-dot" />
@@ -38,66 +113,63 @@ function TypingIndicator() {
 function SourceBadges({ sources }: { sources: string[] }) {
   if (!sources.length) return null;
   return (
-    <div className="flex flex-wrap gap-1 mt-2">
-      {sources.map((s, i) => (
-        <span key={i} className="source-badge">{s}</span>
+    <div className="source-row">
+      {sources.map((source, index) => (
+        <span key={`${source}-${index}`} className="source-badge">
+          {source}
+        </span>
       ))}
     </div>
   );
 }
 
 function CalendarWidget({ onBook }: { onBook: (info: { dateTime: string; name: string; email: string }) => void }) {
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [slots, setSlots] = useState<CalendarSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<'slots' | 'form'>('slots');
+  const [step, setStep] = useState<"slots" | "form">("slots");
 
-  const fetchSlots = async () => {
-    setLoading(true);
-    setSlots([]);
-    try {
-      const res = await fetch(`/api/calendar?date=${date}`);
-      const data = await res.json();
-      setSlots(data.slots || []);
-    } catch {}
-    setLoading(false);
-  };
+  useEffect(() => {
+    const fetchSlots = async () => {
+      setLoading(true);
+      setSlots([]);
+      try {
+        const response = await fetch(`/api/calendar?date=${date}`);
+        const data = await response.json();
+        setSlots(data.slots || []);
+      } catch {
+        setSlots([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  useEffect(() => { fetchSlots(); }, [date]);
+    fetchSlots();
+  }, [date]);
 
-  if (step === 'form') {
+  if (step === "form") {
     return (
-      <div className="mt-3 p-4 rounded-xl" style={{ background: 'var(--bg-input)', border: '1px solid var(--border)' }}>
-        <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
-          📅 Booking: <strong style={{ color: 'var(--accent-green)' }}>{selectedSlot}</strong>
+      <div className="calendar-widget">
+        <p className="calendar-context">
+          <Icon name="calendar" /> Booking <strong>{selectedSlot}</strong>
         </p>
+        <input className="chat-input compact" placeholder="Your name" value={name} onChange={(event) => setName(event.target.value)} />
         <input
-          className="chat-input px-3 py-2 mb-2 block"
-          placeholder="Your Name"
-          value={name}
-          onChange={e => setName(e.target.value)}
-          style={{ borderRadius: 8, fontSize: 13 }}
-        />
-        <input
-          className="chat-input px-3 py-2 mb-3 block"
-          placeholder="Your Email"
+          className="chat-input compact"
+          placeholder="Your email"
           type="email"
           value={email}
-          onChange={e => setEmail(e.target.value)}
-          style={{ borderRadius: 8, fontSize: 13 }}
+          onChange={(event) => setEmail(event.target.value)}
         />
-        <div className="flex gap-2">
-          <button className="pill-btn flex-1" onClick={() => setStep('slots')}>← Back</button>
-          <button
-            className="pill-btn flex-1"
-            style={{ background: 'var(--accent)', color: 'white', borderColor: 'var(--accent)' }}
-            disabled={!name || !email}
-            onClick={() => onBook({ dateTime: selectedSlot!, name, email })}
-          >
-            Confirm Booking
+        <div className="calendar-actions">
+          <button className="secondary-btn" onClick={() => setStep("slots")}>
+            Back
+          </button>
+          <button className="primary-btn" disabled={!name || !email} onClick={() => onBook({ dateTime: selectedSlot!, name, email })}>
+            Confirm booking
           </button>
         </div>
       </div>
@@ -105,29 +177,25 @@ function CalendarWidget({ onBook }: { onBook: (info: { dateTime: string; name: s
   }
 
   return (
-    <div className="mt-3 p-4 rounded-xl" style={{ background: 'var(--bg-input)', border: '1px solid var(--border)' }}>
-      <div className="flex items-center gap-2 mb-3">
-        <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Select date:</span>
-        <input
-          type="date"
-          value={date}
-          min={new Date().toISOString().split('T')[0]}
-          onChange={e => setDate(e.target.value)}
-          className="chat-input px-2 py-1"
-          style={{ width: 'auto', fontSize: 13, borderRadius: 8 }}
-        />
-      </div>
+    <div className="calendar-widget">
+      <label className="date-row">
+        <span>Select date</span>
+        <input type="date" value={date} min={new Date().toISOString().split("T")[0]} onChange={(event) => setDate(event.target.value)} />
+      </label>
       {loading ? (
-        <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Checking availability…</p>
+        <p className="muted">Checking availability...</p>
       ) : slots.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>No slots available on this date.</p>
+        <p className="muted">No slots available on this date.</p>
       ) : (
-        <div className="flex flex-wrap gap-2">
-          {slots.slice(0, 8).map((slot, i) => (
+        <div className="slot-grid">
+          {slots.slice(0, 8).map((slot, index) => (
             <button
-              key={i}
-              className={`slot-btn ${selectedSlot === slot.start ? 'selected' : ''}`}
-              onClick={() => { setSelectedSlot(slot.start); setStep('form'); }}
+              key={`${slot.start}-${index}`}
+              className={`slot-btn ${selectedSlot === slot.start ? "selected" : ""}`}
+              onClick={() => {
+                setSelectedSlot(slot.start);
+                setStep("form");
+              }}
             >
               {slot.label}
             </button>
@@ -138,490 +206,416 @@ function CalendarWidget({ onBook }: { onBook: (info: { dateTime: string; name: s
   );
 }
 
-function MessageBubble({ msg, onBook }: { msg: Message; onBook: (info: any) => void }) {
-  const isUser = msg.role === 'user';
-  const showCalendar = !isUser && msg.content.toLowerCase().includes('📅');
+function formatMessage(text: string): string {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/`(.*?)`/g, "<code>$1</code>")
+    .replace(/• /g, "<br/>• ")
+    .replace(/\n\n/g, "</p><p>")
+    .replace(/\n/g, "<br/>")
+    .replace(/^/, "<p>")
+    .replace(/$/, "</p>");
+}
+
+function MessageBubble({ msg, onBook }: { msg: Message; onBook: (info: { dateTime: string; name: string; email: string }) => void }) {
+  const isUser = msg.role === "user";
+  const showCalendar = !isUser && msg.content.toLowerCase().includes("calendar:");
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-fade-in-up`}>
-      {!isUser && (
-        <div className="w-8 h-8 rounded-full flex items-center justify-center mr-2 flex-shrink-0 mt-1"
-          style={{ background: 'var(--gradient-1)', fontSize: 14 }}>
-          🤖
-        </div>
-      )}
-      <div style={{ maxWidth: '78%' }}>
-        <div className={`px-4 py-3 ${isUser ? 'msg-user' : 'msg-ai'}`}>
+    <div className={`message-row ${isUser ? "from-user" : "from-ai"} animate-fade-in-up`}>
+      <div className="avatar" aria-hidden="true">
+        <Icon name={isUser ? "user" : "bot"} />
+      </div>
+      <div className="message-stack">
+        <div className={`message-bubble ${isUser ? "msg-user" : "msg-ai"}`}>
           {isUser ? (
-            <p style={{ fontSize: 15, lineHeight: 1.5 }}>{msg.content}</p>
+            <p>{msg.content}</p>
           ) : (
-            <div className="ai-prose" style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--text-primary)' }}
-              dangerouslySetInnerHTML={{ __html: formatMessage(msg.content) }}
-            />
+            <div className="ai-prose" dangerouslySetInnerHTML={{ __html: formatMessage(msg.content) }} />
           )}
         </div>
         {!isUser && <SourceBadges sources={msg.sources || []} />}
         {showCalendar && <CalendarWidget onBook={onBook} />}
-        <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, textAlign: isUser ? 'right' : 'left' }}>
-          {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </p>
+        <p className="timestamp">{msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
       </div>
-      {isUser && (
-        <div className="w-8 h-8 rounded-full flex items-center justify-center ml-2 flex-shrink-0 mt-1"
-          style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', fontSize: 14 }}>
-          👤
-        </div>
-      )}
     </div>
   );
-}
-
-function formatMessage(text: string): string {
-  return text
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/`(.*?)`/g, '<code>$1</code>')
-    .replace(/• /g, '<br/>• ')
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/\n/g, '<br/>')
-    .replace(/^/, '<p>')
-    .replace(/$/, '</p>');
 }
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
-      id: '0',
-      role: 'ai',
-      content: "Hi there! 👋 I'm the AI representative for **Anup Kumar Thakur** — Full Stack Developer & AI Engineer.\n\nYou can ask me anything about his background, projects, skills, or you can book an interview directly. What would you like to know?",
+      id: "0",
+      role: "ai",
+      content:
+        "Hi there! I'm the AI representative for **Anup Kumar Thakur**, a Full Stack Developer and AI Engineer.\n\nAsk me about his projects, skills, experience, or type **book** to schedule an interview.",
       sources: [],
       timestamp: new Date(),
-    }
+    },
   ]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [bookingSuccess, setBookingSuccess] = useState<string | null>(null);
   const [showCallModal, setShowCallModal] = useState(false);
-  const [callNumber, setCallNumber] = useState('');
-  const [callStatus, setCallStatus] = useState<'idle' | 'calling' | 'success' | 'error'>('idle');
-  
-  // Web SDK State
+  const [callNumber, setCallNumber] = useState("");
+  const [callStatus, setCallStatus] = useState<"idle" | "calling" | "success" | "error">("idle");
   const [isWebCalling, setIsWebCalling] = useState(false);
   const [isVapiConnected, setIsVapiConnected] = useState(false);
-  const vapiRef = useRef<any>(null);
 
   const bottomRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const vapiRef = useRef<any>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const vapi = new Vapi(process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY || '');
-        vapiRef.current = vapi;
+    try {
+      const vapi = new Vapi(process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY || "");
+      vapiRef.current = vapi;
 
-        vapi.on('call-start', () => {
-          setIsWebCalling(true);
-          setIsVapiConnected(true);
-        });
-        vapi.on('call-end', () => {
-          setIsWebCalling(false);
-          setIsVapiConnected(false);
-        });
-        vapi.on('error', (e: any) => {
-          console.error('Vapi Error:', e);
-          setIsWebCalling(false);
-          setIsVapiConnected(false);
-        });
-      } catch (e) {
-        console.error('Failed to initialize Vapi:', e);
-      }
+      vapi.on("call-start", () => {
+        setIsWebCalling(true);
+        setIsVapiConnected(true);
+      });
+      vapi.on("call-end", () => {
+        setIsWebCalling(false);
+        setIsVapiConnected(false);
+      });
+      vapi.on("error", (error: unknown) => {
+        console.error("Vapi error:", error);
+        setIsWebCalling(false);
+        setIsVapiConnected(false);
+      });
+    } catch (error) {
+      console.error("Failed to initialize Vapi:", error);
     }
+
     return () => {
       vapiRef.current?.stop();
     };
   }, []);
 
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isLoading]);
+
   const toggleWebCall = () => {
     if (!vapiRef.current) {
-      alert("Voice SDK is not initialized! Please make sure NEXT_PUBLIC_VAPI_PUBLIC_KEY is added to Vercel and you have redeployed.");
+      alert("Voice SDK is not initialized. Add NEXT_PUBLIC_VAPI_PUBLIC_KEY and redeploy.");
       return;
     }
+
     if (isWebCalling || isVapiConnected) {
       vapiRef.current.stop();
       setIsWebCalling(false);
       setIsVapiConnected(false);
-    } else {
-      setIsWebCalling(true); // loading state
-      const asstId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
-      if (!asstId) {
-        alert("Assistant ID is missing! Please make sure NEXT_PUBLIC_VAPI_ASSISTANT_ID is added to Vercel and redeployed.");
-        setIsWebCalling(false);
-        return;
-      }
-      vapiRef.current.start(asstId);
+      return;
     }
-  };
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
+    const assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
+    if (!assistantId) {
+      alert("Assistant ID is missing. Add NEXT_PUBLIC_VAPI_ASSISTANT_ID and redeploy.");
+      return;
+    }
+
+    setIsWebCalling(true);
+    vapiRef.current.start(assistantId);
+  };
 
   const sendMessage = async (text?: string) => {
     const messageText = (text || input).trim();
     if (!messageText || isLoading) return;
-    setInput('');
 
-    const userMsg: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: messageText,
-      timestamp: new Date(),
-    };
-    setMessages(prev => [...prev, userMsg]);
+    setInput("");
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        role: "user",
+        content: messageText,
+        timestamp: new Date(),
+      },
+    ]);
     setIsLoading(true);
 
     try {
-      // Check for booking intent
       const lowerText = messageText.toLowerCase();
-      if (lowerText.includes('book') || lowerText.includes('schedule') || lowerText.includes('interview') || lowerText.includes('meeting')) {
-        const aiMsg: Message = {
-          id: Date.now().toString() + '-ai',
-          role: 'ai',
-          content: "📅 I'd love to help you schedule time with Anup! Please select a date and time below that works for you:",
-          sources: [],
-          timestamp: new Date(),
-        };
-        setMessages(prev => [...prev, aiMsg]);
-        setIsLoading(false);
+      if (lowerText.includes("book") || lowerText.includes("schedule") || lowerText.includes("interview") || lowerText.includes("meeting")) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `${Date.now()}-ai`,
+            role: "ai",
+            content: "Calendar: I can help you schedule time with Anup. Pick a date and time below that works for you.",
+            sources: [],
+            timestamp: new Date(),
+          },
+        ]);
         return;
       }
 
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: messageText }),
       });
-      const data = await res.json();
+      const data = await response.json();
 
-      const aiMsg: Message = {
-        id: Date.now().toString() + '-ai',
-        role: 'ai',
-        content: data.reply || 'Sorry, I could not generate a response.',
-        sources: data.sources || [],
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, aiMsg]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `${Date.now()}-ai`,
+          role: "ai",
+          content: data.reply || "Sorry, I could not generate a response.",
+          sources: data.sources || [],
+          timestamp: new Date(),
+        },
+      ]);
     } catch {
-      setMessages(prev => [...prev, {
-        id: Date.now().toString() + '-err',
-        role: 'ai',
-        content: 'Sorry, something went wrong. Please try again.',
-        sources: [],
-        timestamp: new Date(),
-      }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `${Date.now()}-err`,
+          role: "ai",
+          content: "Sorry, something went wrong. Please try again.",
+          sources: [],
+          timestamp: new Date(),
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleBook = async (info: { dateTime: string; name: string; email: string }) => {
     try {
-      const res = await fetch('/api/calendar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/calendar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(info),
       });
-      const data = await res.json();
-      if (data.success) {
-        const d = new Date(data.start);
-        const confirmMsg: Message = {
+      const data = await response.json();
+
+      if (!data.success) throw new Error(data.error || "Failed to book meeting");
+
+      const date = new Date(data.start);
+      setMessages((prev) => [
+        ...prev,
+        {
           id: Date.now().toString(),
-          role: 'ai',
-          content: `✅ **Meeting confirmed!** You're scheduled with Anup on **${d.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}** at **${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })} IST**.\n\nThe meeting has been successfully added to Anup's calendar. See you then! 🎉`,
+          role: "ai",
+          content: `**Meeting confirmed!** You're scheduled with Anup on **${date.toLocaleDateString("en-IN", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}** at **${date.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone: "Asia/Kolkata",
+          })} IST**.\n\nThe meeting has been added to Anup's calendar.`,
           sources: [],
           timestamp: new Date(),
-        };
-        setMessages(prev => [...prev, confirmMsg]);
-      } else {
-        throw new Error(data.error || 'Failed to book meeting');
-      }
+        },
+      ]);
     } catch (error: any) {
-      setMessages(prev => [...prev, {
-        id: Date.now().toString(),
-        role: 'ai',
-        content: `Sorry, there was an error booking the meeting: ${error.message || 'Please try again.'}`,
-        sources: [],
-        timestamp: new Date(),
-      }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          role: "ai",
+          content: `Sorry, there was an error booking the meeting: ${error.message || "Please try again."}`,
+          sources: [],
+          timestamp: new Date(),
+        },
+      ]);
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
       sendMessage();
     }
   };
 
   return (
-    <div style={{ 
-      background: 'var(--bg-primary)', 
-      minHeight: '100vh', 
-      display: 'flex', 
-      flexDirection: 'column',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
-      {/* Background glows */}
-      <div style={{
-        position: 'fixed', top: '-20%', left: '-10%', width: '500px', height: '500px',
-        background: 'radial-gradient(circle, rgba(108,99,255,0.08) 0%, transparent 70%)',
-        pointerEvents: 'none', zIndex: 0
-      }} />
-      <div style={{
-        position: 'fixed', bottom: '-20%', right: '-10%', width: '600px', height: '600px',
-        background: 'radial-gradient(circle, rgba(255,107,107,0.06) 0%, transparent 70%)',
-        pointerEvents: 'none', zIndex: 0
-      }} />
-
-      {/* Header */}
-      <header className="glass" style={{
-        position: 'sticky', top: 0, zIndex: 100,
-        borderBottom: '1px solid var(--border)',
-        padding: '12px 24px',
-      }}>
-        <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{
-              width: 44, height: 44, borderRadius: '50%',
-              background: 'var(--gradient-1)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 20, flexShrink: 0,
-              boxShadow: '0 0 16px rgba(108,99,255,0.4)',
-            }}>🤖</div>
-            <div>
-              <h1 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
-                Anup Thakur <span className="gradient-text">AI Persona</span>
-              </h1>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div className="status-dot animate-pulse-glow" />
-                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Online — RAG-powered · Gemini 2.0</span>
-              </div>
-            </div>
+    <div className="app-shell">
+      <aside className="profile-panel">
+        <div className="brand-lockup">
+          <div className="brand-mark">
+            <Icon name="spark" />
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={toggleWebCall}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                background: isWebCalling ? 'rgba(255,107,107,0.12)' : 'rgba(255,152,0,0.12)', 
-                border: `1px solid ${isWebCalling ? 'rgba(255,107,107,0.3)' : 'rgba(255,152,0,0.3)'}`,
-                color: isWebCalling ? '#ff6b6b' : '#ff9800', 
-                borderRadius: 20, padding: '6px 14px',
-                fontSize: 13, fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s'
-              }}
-              title="Talk to the AI via your browser microphone"
-            >
-              {isVapiConnected ? '⏹️ End Web Call' : (isWebCalling ? '⏳ Connecting...' : '🎙️ Talk in Browser')}
-            </button>
-            <button
-              onClick={() => setShowCallModal(true)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                background: 'rgba(108,99,255,0.12)', border: '1px solid rgba(108,99,255,0.3)',
-                color: 'var(--accent)', borderRadius: 20, padding: '6px 14px',
-                fontSize: 13, fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s'
-              }}
-              title="Request a call from the agent"
-            >
-              📲 Have the AI Call You
-            </button>
-            <a
-              href="tel:+12137581764"
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                background: 'rgba(78,204,163,0.12)', border: '1px solid rgba(78,204,163,0.3)',
-                color: 'var(--accent-green)', borderRadius: 20, padding: '6px 14px',
-                fontSize: 13, fontWeight: 500, textDecoration: 'none', transition: 'all 0.2s'
-              }}
-              title="Call the voice agent"
-            >
-              📞 +1 (213) 758-1764
-            </a>
+          <div>
+            <p className="eyebrow">AI candidate representative</p>
+            <h1>Anup Thakur</h1>
           </div>
         </div>
-      </header>
 
-      {/* Messages */}
-      <main style={{ flex: 1, overflowY: 'auto', padding: '24px 16px', position: 'relative', zIndex: 1 }}>
-        <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
-          
-          {/* Intro card */}
+        <div className="call-card">
+          <p>Prefer voice?</p>
+          <button className={`primary-btn wide ${isWebCalling ? "danger" : ""}`} onClick={toggleWebCall}>
+            <Icon name={isVapiConnected ? "stop" : "mic"} />
+            {isVapiConnected ? "End browser call" : isWebCalling ? "Connecting..." : "Talk in browser"}
+          </button>
+          <button className="secondary-btn wide" onClick={() => setShowCallModal(true)}>
+            <Icon name="phone" />
+            Have the AI call you
+          </button>
+          <a className="phone-link" href="tel:+12137581764">
+            +1 (213) 758-1764
+          </a>
+        </div>
+
+        <div className="portrait-card">
+          <div className="portrait">
+            <span>AT</span>
+          </div>
+          <div>
+            <h2>Full Stack Developer and AI Engineer</h2>
+            <p>B.Tech CSE @ BPIT Delhi, 2023-27. Building practical AI tools with clean product thinking.</p>
+          </div>
+        </div>
+
+        <div className="metric-grid">
+          <div>
+            <strong>900+</strong>
+            <span>DSA problems</span>
+          </div>
+          <div>
+            <strong>1712</strong>
+            <span>LeetCode rating</span>
+          </div>
+          <div>
+            <strong>RAG</strong>
+            <span>Grounded answers</span>
+          </div>
+          <div>
+            <strong>Live</strong>
+            <span>Voice calls</span>
+          </div>
+        </div>
+
+        <div className="stack-row">
+          {STACK.map((item) => (
+            <span key={item}>{item}</span>
+          ))}
+        </div>
+      </aside>
+
+      <main className="chat-panel">
+        <header className="chat-header">
+          <div>
+            <p className="eyebrow">RAG-powered chat</p>
+            <h2>Ask about projects, skills, or availability</h2>
+          </div>
+          <div className="status-pill">
+            <span />
+            Online
+          </div>
+        </header>
+
+        <section className="messages" aria-live="polite">
           {messages.length <= 1 && (
-            <div className="glass animate-fade-in-up" style={{ borderRadius: 16, padding: 24, marginBottom: 8 }}>
-              <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-                <div className="animate-float" style={{ fontSize: 40 }}>👨‍💻</div>
-                <div>
-                  <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
-                    Anup Kumar Thakur
-                  </h2>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 12, lineHeight: 1.6 }}>
-                    B.Tech CSE @ BPIT Delhi (2023–27) · Full Stack Dev · AI Engineer · 900+ DSA problems solved · LeetCode 1712 rating
-                  </p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {['React', 'Next.js', 'Node.js', 'MongoDB', 'Python', 'Gemini AI', 'RAG'].map(t => (
-                      <span key={t} className="source-badge">{t}</span>
-                    ))}
-                  </div>
+            <div className="starter-panel animate-fade-in-up">
+              <div>
+                <p className="eyebrow">Start fast</p>
+                <h3>Pick a prompt or ask naturally.</h3>
+              </div>
+              <div className="suggestion-grid">
+                {SUGGESTED_QUESTIONS.map((question) => (
+                  <button key={question} className="suggestion-btn" onClick={() => sendMessage(question)}>
+                    {question}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {messages.map((message) => (
+            <MessageBubble key={message.id} msg={message} onBook={handleBook} />
+          ))}
+
+          {isLoading && (
+            <div className="message-row from-ai animate-fade-in-up">
+              <div className="avatar" aria-hidden="true">
+                <Icon name="bot" />
+              </div>
+              <div className="message-stack">
+                <div className="message-bubble msg-ai">
+                  <TypingIndicator />
                 </div>
               </div>
             </div>
           )}
-
-          {/* Message list */}
-          {messages.map(msg => (
-            <MessageBubble key={msg.id} msg={msg} onBook={handleBook} />
-          ))}
-
-          {/* Typing indicator */}
-          {isLoading && (
-            <div className="flex items-start animate-fade-in-up">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center mr-2 flex-shrink-0"
-                style={{ background: 'var(--gradient-1)', fontSize: 14 }}>🤖</div>
-              <div className="msg-ai">
-                <TypingIndicator />
-              </div>
-            </div>
-          )}
-
           <div ref={bottomRef} />
-        </div>
+        </section>
+
+        <footer className="composer">
+          <div className="composer-box">
+            <textarea
+              className="chat-input"
+              rows={1}
+              value={input}
+              onChange={(event) => {
+                setInput(event.target.value);
+                event.target.style.height = "auto";
+                event.target.style.height = `${Math.min(event.target.scrollHeight, 128)}px`;
+              }}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask about Anup's skills, projects, or type 'book'..."
+              disabled={isLoading}
+            />
+            <button className="send-btn" onClick={() => sendMessage()} disabled={isLoading || !input.trim()} aria-label="Send message">
+              <Icon name="send" />
+            </button>
+          </div>
+          <p>Grounded on Anup's resume and project data. Built for AI Engineer screening conversations.</p>
+        </footer>
       </main>
 
-      {/* Suggested questions */}
-      {messages.length <= 1 && (
-        <div style={{ 
-          padding: '12px 16px 0', 
-          position: 'relative', zIndex: 1,
-          maxWidth: 800, margin: '0 auto', width: '100%'
-        }}>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, paddingLeft: 4 }}>
-            Suggested questions:
-          </p>
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8 }}>
-            {SUGGESTED_QUESTIONS.map((q, i) => (
-              <button key={i} className="pill-btn flex-shrink-0" onClick={() => sendMessage(q)}>
-                {q}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Input area */}
-      <footer style={{
-        position: 'sticky', bottom: 0, zIndex: 100,
-        background: 'rgba(10,10,15,0.9)', backdropFilter: 'blur(20px)',
-        borderTop: '1px solid var(--border)', padding: '16px',
-      }}>
-        <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', gap: 10, alignItems: 'flex-end' }}>
-          <textarea
-            ref={textareaRef}
-            id="chat-input"
-            className="chat-input"
-            rows={1}
-            value={input}
-            onChange={e => {
-              setInput(e.target.value);
-              // Auto resize
-              e.target.style.height = 'auto';
-              e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
-            }}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask about Anup's skills, projects, or type 'book' to schedule an interview…"
-            style={{ padding: '12px 16px', minHeight: 48, maxHeight: 120 }}
-            disabled={isLoading}
-          />
-          <button
-            id="send-button"
-            className="send-btn"
-            onClick={() => sendMessage()}
-            disabled={isLoading || !input.trim()}
-            style={{ width: 48, height: 48, flexShrink: 0 }}
-          >
-            {isLoading ? (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-              </svg>
-            ) : (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <line x1="22" y1="2" x2="11" y2="13" />
-                <polygon points="22 2 15 22 11 13 2 9 22 2" />
-              </svg>
-            )}
-          </button>
-        </div>
-        <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
-          RAG-grounded answers from Anup's resume & GitHub · Built for Scaler AI Engineer screening
-        </p>
-      </footer>
-
-      {/* Call Modal */}
       {showCallModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.6)', zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}>
-          <div className="glass" style={{
-            padding: 24, borderRadius: 16, width: '90%', maxWidth: 400,
-            background: 'var(--bg-card)', border: '1px solid var(--border)'
-          }}>
-            <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8, color: 'var(--text-primary)' }}>
-              Request an Outbound Call
-            </h3>
-            <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16 }}>
-              Enter your phone number with the country code (e.g., +919999999999) and our AI will call you immediately.
-            </p>
-            <input
-              type="tel"
-              className="chat-input px-3 py-2 block w-full"
-              placeholder="+91..."
-              value={callNumber}
-              onChange={e => setCallNumber(e.target.value)}
-              style={{ borderRadius: 8, marginBottom: 16, width: '100%', boxSizing: 'border-box' }}
-            />
-            {callStatus === 'error' && (
-              <p style={{ color: '#ff6b6b', fontSize: 13, marginBottom: 16 }}>Failed to place the call. Check the number and try again.</p>
-            )}
-            {callStatus === 'success' && (
-              <p style={{ color: 'var(--accent-green)', fontSize: 13, marginBottom: 16 }}>✅ Call initiated! Your phone should ring shortly.</p>
-            )}
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button 
-                className="pill-btn" 
-                onClick={() => { setShowCallModal(false); setCallStatus('idle'); }}
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="call-modal-title">
+          <div className="modal">
+            <button
+              className="icon-btn"
+              onClick={() => {
+                setShowCallModal(false);
+                setCallStatus("idle");
+              }}
+              aria-label="Close"
+            >
+              <Icon name="close" />
+            </button>
+            <h3 id="call-modal-title">Request an outbound call</h3>
+            <p>Enter your phone number with country code and the AI voice agent will call immediately.</p>
+            <input className="chat-input compact" type="tel" placeholder="+91..." value={callNumber} onChange={(event) => setCallNumber(event.target.value)} />
+            {callStatus === "error" && <p className="form-error">Failed to place the call. Check the number and try again.</p>}
+            {callStatus === "success" && <p className="form-success">Call initiated. Your phone should ring shortly.</p>}
+            <div className="modal-actions">
+              <button
+                className="secondary-btn"
+                onClick={() => {
+                  setShowCallModal(false);
+                  setCallStatus("idle");
+                }}
               >
                 Close
               </button>
-              <button 
-                className="pill-btn" 
-                style={{ background: 'var(--accent)', color: 'white', borderColor: 'var(--accent)' }}
-                disabled={!callNumber || callStatus === 'calling' || callStatus === 'success'}
+              <button
+                className="primary-btn"
+                disabled={!callNumber || callStatus === "calling" || callStatus === "success"}
                 onClick={async () => {
-                  setCallStatus('calling');
+                  setCallStatus("calling");
                   try {
-                    const res = await fetch('/api/call', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ phoneNumber: callNumber })
+                    const response = await fetch("/api/call", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ phoneNumber: callNumber }),
                     });
-                    if (res.ok) setCallStatus('success');
-                    else setCallStatus('error');
+                    setCallStatus(response.ok ? "success" : "error");
                   } catch {
-                    setCallStatus('error');
+                    setCallStatus("error");
                   }
                 }}
               >
-                {callStatus === 'calling' ? 'Calling...' : 'Call Me'}
+                {callStatus === "calling" ? "Calling..." : "Call me"}
               </button>
             </div>
           </div>
