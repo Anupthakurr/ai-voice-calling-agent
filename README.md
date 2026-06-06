@@ -23,6 +23,43 @@ This project is an end-to-end AI Persona built for Anup Thakur. It consists of t
 
 ## 🏗️ Architecture
 
+```mermaid
+graph TD
+    U([User])
+    
+    subgraph "Interfaces"
+        V[🎙️ Voice Agent<br>Vapi.ai]
+        C[💬 Chat Interface<br>Next.js]
+    end
+
+    subgraph "AI & Retrieval (RAG)"
+        EM[Gemini Embeddings]
+        PC[(Pinecone Vector DB)]
+        LLM[Gemini 2.5 Flash LLM]
+    end
+
+    subgraph "Tools & Backend"
+        EX[Express.js Webhook]
+        CAL[Google Calendar API]
+    end
+
+    U -- Phone Call --> V
+    U -- Web Chat --> C
+
+    V -- Query --> EM
+    C -- Query --> EM
+
+    EM -- Similarity Search --> PC
+    PC -- Relevant Context --> LLM
+
+    V -- System Prompt + Context --> LLM
+    C -- System Prompt + Context --> LLM
+
+    V -. Tool Call .-> EX
+    EX -- Check/Book Availability --> CAL
+    C -. Inline Widget .-> CAL
+```
+
 1. **User Input** (Voice via Vapi, or Text via Next.js Chat).
 2. **Context Retrieval (RAG)**: The query is embedded via Gemini and sent to Pinecone. Relevant context (resume sections, GitHub readmes) is retrieved.
 3. **LLM Generation**: The LLM uses the retrieved context and strict system prompts to generate a grounded response.
